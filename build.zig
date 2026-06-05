@@ -30,6 +30,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    mod.addImport("lil", lil_dep.module("lil"));
     exe.root_module.addImport("lil", lil_dep.module("lil"));
 
     b.installArtifact(exe);
