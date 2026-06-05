@@ -18,6 +18,8 @@ pub fn resolve(vm: *lil.VM, module_name: []const u8) anyerror![]const u8 {
 }
 
 fn resolvePath(vm: *lil.VM, path: []const u8) ![]const u8 {
+    log.beginStep("Resolve path");
+    defer log.endStep();
     log.trace("type: local path", .{});
 
     const source = std.Io.Dir.cwd().readFileAlloc(vm.io.system, path, vm.allocator, .unlimited) catch |err| {
@@ -30,18 +32,85 @@ fn resolvePath(vm: *lil.VM, path: []const u8) ![]const u8 {
 }
 
 fn resolveUrl(vm: *lil.VM, url: []const u8) ![]const u8 {
-    _ = vm;
-    log.trace("type: remote URL", .{});
+    log.beginStep("Resolve url");
+    defer log.endStep();
+    log.trace("type: git repository", .{});
     log.trace("fetching: {s}", .{url});
 
-    //TODO: implement http client to download repository
-    //TODO: move lib in .cache
+    var hasher = std.hash.Fnv1a_64.init();
+    hasher.update(url);
+    const hash = hasher.final();
 
-    log.err("URL import not implemented yet", .{});
-    return error.NotImplemented;
+    var dest_buf: [std.fs.max_path_bytes]u8 = undefined;
+
+    const dest_path = std.fmt.bufPrint(&dest_buf, ".dependencies/{x}", .{hash}) catch return error.PathToLong;
+    const already_exists = if (std.Io.Dir.cwd().access(vm.io.system, dest_path, .{})) |_| true else |_| false;
+
+    if (!already_exists) {
+        log.trace("initializing download...", .{});
+        std.Io.Dir.cwd().createDirPath(vm.io.system, ".dependencies") catch {};
+
+        var child = vm.allocator.create(std.process.Child) catch return error.AllocationFailed;
+
+        const options = std.process.SpawnOptions{
+            .stderr = .pipe,
+            .stdout = .ignore,
+            .argv = &[_][]const u8{ "git", "clone", "--depth", "1", "--progress", url, dest_path },
+        };
+
+        child.* = std.process.spawn(vm.io.system, options) catch return error.SpawnFailed;
+
+        if (child.stderr) |*stderr_stream| {
+            var io_buffer: [1024]u8 = undefined;
+            var reader = stderr_stream.reader(vm.io.system, &io_buffer);
+
+            var chunk_buf: [256]u8 = undefined;
+
+            var line_acc: [512]u8 = undefined;
+            var line_len: usize = 0;
+
+            while (true) {
+                const bytes_read = reader.interface.readSliceShort(&chunk_buf) catch |err| {
+                    return err;
+                };
+
+                if (bytes_read == 0) break;
+
+                for (chunk_buf[0..bytes_read]) |byte| {
+                    if (byte == '\r' or byte == '\n') {
+                        if (line_len > 0) {
+                            log.trace("{s}", .{line_acc[0..line_len]});
+                            line_len = 0;
+                        }
+                    } else {
+                        if (line_len < line_acc.len) {
+                            line_acc[line_len] = byte;
+                            line_len += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        _ = child.wait(vm.io.system) catch {};
+    }
+
+    var entry_buf: [std.fs.max_path_bytes]u8 = undefined;
+    const entry_path = std.fmt.bufPrint(&entry_buf, "{s}/lib.lil", .{dest_path}) catch return error.PathToLong;
+
+    log.trace("loading entry point: {s}", .{entry_path});
+
+    const source = std.Io.Dir.cwd().readFileAlloc(vm.io.system, entry_path, vm.allocator, .unlimited) catch |err| {
+        log.err("Repository downloaded but 'lib.lil' is missing!", .{});
+        return err;
+    };
+
+    return source;
 }
 
 fn resolveAlias(vm: *lil.VM, alias: []const u8) ![]const u8 {
+    log.beginStep("Resolve url");
+    defer log.endStep();
     _ = vm;
     log.trace("type: manifest alias", .{});
     log.trace("looking up '{s}' in lil.toml", .{alias});
