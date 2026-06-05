@@ -5,6 +5,7 @@ const lil = @import("lil");
 const host = @import("runtime/host.zig");
 
 const cmd_run = @import("commands/run.zig");
+const log = @import("logger/logger.zig");
 
 pub fn main(init: std.process.Init) !void {
     const arena: std.mem.Allocator = init.arena.allocator();
@@ -30,6 +31,8 @@ pub fn main(init: std.process.Init) !void {
         std.debug.print("REPL ...", .{});
         return;
     }
+
+    log.header("LIL Compiler v0.1.0", .{});
 
     const cmd_str = args[1];
 

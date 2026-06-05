@@ -1,0 +1,4 @@
+let json = import("lil-tests/json.lil")
+
+io::println("result: {}", json::add(10, 5))
+
