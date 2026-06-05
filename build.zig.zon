@@ -1,0 +1,21 @@
+.{
+    .name = .lil_cli,
+
+    .version = "0.0.0",
+
+    .fingerprint = 0x869aaaebf51f7cdc,
+
+    .minimum_zig_version = "0.16.0",
+
+    .dependencies = .{
+        .lil = .{
+            .url = "git+https://github.com/Peace-Walkers/Lil.git#f326408b8aa842274835bb7cde5af2a627b14395",
+            .hash = "lil-0.0.0-zdU4RtFgAgAGJJgRjkQwreZHz5A-i5obyJjYTefmcqz1",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
