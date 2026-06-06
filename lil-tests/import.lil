@@ -4,7 +4,7 @@ let json = import("lil-tests/json.lil")
 
 io::println("result: {}", json::add(10, 5))
 
-let result = test::sub(10, 5)
+let result = test::test::sub(10, 5)
 
 io::println(result)
 

@@ -2,7 +2,7 @@ const std = @import("std");
 const lil = @import("lil");
 const log = @import("../logger/logger.zig");
 
-pub fn resolve(vm: *lil.VM, module_name: []const u8) anyerror![]const u8 {
+pub fn resolve(vm: *lil.VM, module_name: []const u8, caller_path: []const u8) anyerror!lil.ResolvedModule {
     log.beginStep("Resolving import");
     defer log.endStep();
 
@@ -11,27 +11,34 @@ pub fn resolve(vm: *lil.VM, module_name: []const u8) anyerror![]const u8 {
     if (std.mem.startsWith(u8, module_name, "http://") or std.mem.startsWith(u8, module_name, "https://")) {
         return resolveUrl(vm, module_name);
     } else if (std.mem.endsWith(u8, module_name, ".lil")) {
-        return resolvePath(vm, module_name);
+        return resolvePath(vm, caller_path, module_name);
     } else {
         return resolveAlias(vm, module_name);
     }
 }
 
-fn resolvePath(vm: *lil.VM, path: []const u8) ![]const u8 {
+fn resolvePath(vm: *lil.VM, caller_path: []const u8, target_path: []const u8) !lil.ResolvedModule {
     log.beginStep("Resolve path");
     defer log.endStep();
     log.trace("type: local path", .{});
 
-    const source = std.Io.Dir.cwd().readFileAlloc(vm.io.system, path, vm.allocator, .unlimited) catch |err| {
-        log.err("Cannot find local module at '{s}'", .{path});
+    const base_dir = std.fs.path.dirname(caller_path) orelse ".";
+    const absolute_path = try std.fs.path.join(vm.allocator, &[_][]const u8{ base_dir, target_path });
+
+    const source = std.Io.Dir.cwd().readFileAlloc(vm.io.system, absolute_path, vm.allocator, .unlimited) catch |err| {
+        log.err("Cannot find local module at '{s}'", .{absolute_path});
         return err;
     };
 
     log.trace("module loaded from disk", .{});
-    return source;
+
+    return .{
+        .source = source,
+        .file_path = absolute_path,
+    };
 }
 
-fn resolveUrl(vm: *lil.VM, url: []const u8) ![]const u8 {
+fn resolveUrl(vm: *lil.VM, url: []const u8) !lil.ResolvedModule {
     log.beginStep("Resolve url");
     defer log.endStep();
     log.trace("type: git repository", .{});
@@ -105,10 +112,15 @@ fn resolveUrl(vm: *lil.VM, url: []const u8) ![]const u8 {
         return err;
     };
 
-    return source;
+    const final_path = try vm.allocator.dupe(u8, entry_path);
+
+    return .{
+        .source = source,
+        .file_path = final_path,
+    };
 }
 
-fn resolveAlias(vm: *lil.VM, alias: []const u8) ![]const u8 {
+fn resolveAlias(vm: *lil.VM, alias: []const u8) !lil.ResolvedModule {
     log.beginStep("Resolve url");
     defer log.endStep();
     _ = vm;
