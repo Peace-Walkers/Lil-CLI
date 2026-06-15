@@ -42,7 +42,7 @@ pub fn main(init: std.process.Init) !void {
             std.process.exit(1);
         }
         const file_path = args[2];
-        try cmd_run.execute(arena, vm_io, file_path);
+        try cmd_run.execute(arena, vm_io, file_path, init);
     } else {
         std.debug.print("Unknown command: {s}\n", .{cmd_str});
         std.process.exit(1);

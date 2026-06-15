@@ -1,0 +1,9 @@
+
+let args = env::parse_args()
+
+mut i = 0
+let len = args.len()
+
+while i < len:
+  io::println("{}", args[i])
+  i = i + 1
