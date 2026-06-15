@@ -8,7 +8,7 @@ const cmd_run = @import("commands/run.zig");
 const log = @import("logger/logger.zig");
 
 pub fn main(init: std.process.Init) !void {
-    const arena: std.mem.Allocator = init.arena.allocator();
+    const arena: std.mem.Allocator = init.gpa;
     const args = try init.minimal.args.toSlice(arena);
     const io = init.io;
 

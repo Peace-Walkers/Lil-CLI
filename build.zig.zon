@@ -9,8 +9,8 @@
 
     .dependencies = .{
         .lil = .{
-            .url = "git+https://github.com/Peace-Walkers/Lil.git#a5bf7592767d64150c94df83bdab6d5830be17a9",
-            .hash = "lil-0.0.0-zdU4RodkAgBhjlu-x_Vuqjxma-1CZ5jyNNQUCpaYJGe6",
+            .url = "git+https://github.com/Peace-Walkers/Lil.git?ref=ref-counting#0c4560d3db7cfba43f7b1d3a64fac720c83ab1a8",
+            .hash = "lil-0.0.0-zdU4RpAPAwAuK2Pks0K6eRIhOnfeFAYKeBWeNSLSqPnu",
         },
     },
     .paths = .{
